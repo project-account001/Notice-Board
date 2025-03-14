@@ -1,34 +1,33 @@
-require("dotenv").config(); // Load environment variables
+require("dotenv").config();
 const express = require("express");
 const { Pool } = require("pg");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// PostgreSQL Connection Pool
+// Debugging: Check if DATABASE_URL is set
+console.log("Database URL:", process.env.DATABASE_URL);
+
 const pool = new Pool({
-    connectionString: process.env.DATABASE_URL, // Get from .env file
-    ssl: { rejectUnauthorized: false } // Needed for Railway hosting
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false
 });
 
 // Test database connection
 pool.query("SELECT NOW()", (err, res) => {
     if (err) {
-        console.error("❌ Database connection failed:", err.stack);
+        console.error("❌ Database connection failed:", err);
     } else {
-        console.log("✅ Connected to PostgreSQL:", res.rows[0]);
+        console.log("✅ Connected to PostgreSQL at", res.rows[0].now);
     }
 });
 
-// Middleware for JSON body parsing
 app.use(express.json());
 
-// Default route
 app.get("/", (req, res) => {
     res.send("🚀 Node.js server is running successfully!");
 });
 
-// Sample route to fetch all notices
 app.get("/notices", async (req, res) => {
     try {
         const result = await pool.query("SELECT * FROM notices ORDER BY created_at DESC");
