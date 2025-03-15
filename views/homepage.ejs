@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>College Notice Board - Home</title>
+    <link rel="stylesheet" href="/public/style.css"> <!-- Link external CSS -->
+</head>
+<body>
+    <% include ('./partials/header') %> <!-- Include header -->
+
+    <div class="container">
+        <h1>Welcome to the College Notice Board</h1>
+        <p>Select your role to continue:</p>
+
+        <div class="login-options">
+            <a href="/login/admin" class="btn">Login as Admin</a>
+            <a href="/login/teacher" class="btn">Login as Teacher</a>
+            <a href="/login/student" class="btn">Login as Student</a>
+        </div>
+    </div>
+
+    <% include ('./partials/footer') %> <!-- Include footer -->
+</body>
+</html>

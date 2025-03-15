@@ -1,6 +1,8 @@
 require("dotenv").config();
 const express = require("express");
 const { Pool } = require("pg");
+const path = require("path");
+const bodyParser = require("body-parser");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -24,8 +26,20 @@ pool.query("SELECT NOW()", (err, res) => {
 
 app.use(express.json());
 
+// Middleware
+app.use(bodyParser.urlencoded({ extended: true })); // false
+app.use(bodyParser.json());
+
+app.use(express.static(path.join(__dirname, "public"))); // Ensure correct path for static files
+
+// View Engine Setup
+app.set("view engine", "ejs");
+app.set("views", path.join(__dirname, "views")); // Ensure views directory is correctly set
+
+
 app.get("/", (req, res) => {
-    res.send("🚀 Node.js server is running successfully!");
+    // res.send("🚀 Node.js server is running successfully!");
+    res.render("homepage.ejs");
 });
 
 app.get("/notices", async (req, res) => {
