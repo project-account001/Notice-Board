@@ -225,9 +225,91 @@ app.post("/deleteNotice/:id", isAuthenticated, isAdmin, async (req, res) => {
     }
 });
 
-app.get("/manageUsers", isAuthenticated, isAdmin, async(req, res) => {
-    res.render("manageuser.ejs");
+// Route for Admin to manage users
+app.get("/manageUsers", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+        const query = `
+            SELECT users.*, 
+                   CASE 
+                       WHEN role_id = 3 THEN 'Admin'
+                       WHEN role_id = 2 THEN 'Teacher'
+                       WHEN role_id = 1 THEN 'Student'
+                   END AS role_name 
+            FROM users 
+            ORDER BY role_id DESC, name ASC
+        `;
+        const result = await pool.query(query);
+        
+        // Separate users based on their role
+        const adminUsers = result.rows.filter(user => user.role_id === 3);
+        const teacherUsers = result.rows.filter(user => user.role_id === 2);
+        const studentUsers = result.rows.filter(user => user.role_id === 1);
+
+        res.render("manageUsers", { 
+            user: req.session.user, 
+            adminUsers, 
+            teacherUsers, 
+            studentUsers 
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send("Server error");
+    }
 });
+
+// Route to Add a New User (Admin Only)
+app.post("/addUser", isAuthenticated, isAdmin, async (req, res) => {
+    const { name, email, password, role_id } = req.body;
+
+    try {
+        // Check if user already exists
+        const userExists = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
+        if (userExists.rows.length > 0) {
+            return res.status(400).send("User with this email already exists.");
+        }
+
+        // Hash password (if required, otherwise store plain text)
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Insert new user
+        const query = `
+            INSERT INTO users (name, email, password, role_id) 
+            VALUES ($1, $2, $3, $4)
+        `;
+        await pool.query(query, [name, email, hashedPassword, role_id]);
+
+        res.redirect("/manageUsers");
+    } catch (error) {
+        console.error(error);
+        res.status(500).send("Server error");
+    }
+});
+
+// Route to Delete a User (Admin Only, cannot delete other admins)
+app.post("/deleteUser/:id", isAuthenticated, isAdmin, async (req, res) => {
+    const userId = req.params.id;
+
+    try {
+        // Prevent admin from deleting other admins
+        const userToDelete = await pool.query("SELECT role_id FROM users WHERE id = $1", [userId]);
+
+        if (userToDelete.rows.length === 0) {
+            return res.status(404).send("User not found.");
+        }
+
+        if (userToDelete.rows[0].role_id === 3) {
+            return res.status(403).send("Admins cannot delete other admins.");
+        }
+
+        // Delete the user
+        await pool.query("DELETE FROM users WHERE id = $1", [userId]);
+        res.redirect("/manageUsers");
+    } catch (error) {
+        console.error(error);
+        res.status(500).send("Server error");
+    }
+});
+
 
 app.get("/", (req, res) => {
     // res.send("🚀 Node.js server is running successfully!");

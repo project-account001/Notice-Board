@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Users</title>
+    <link rel="stylesheet" href="/public/styles.css">
+</head>
+<body>
+    <h2>Manage Users</h2>
+
+    <h3>Add New User</h3>
+    <form action="/addUser" method="POST">
+        <label>Name:</label>
+        <input type="text" name="name" required>
+        
+        <label>Email:</label>
+        <input type="email" name="email" required>
+        
+        <label>Password:</label>
+        <input type="password" name="password" required>
+        
+        <label>Role:</label>
+        <select name="role_id" required>
+            <option value="2">Teacher</option>
+            <option value="1">Student</option>
+        </select>
+
+        <button type="submit">Add User</button>
+    </form>
+
+    <hr>
+
+    <% function renderUserTable(title, users) { %>
+        <h3><%= title %></h3>
+        <% if (users.length === 0) { %>
+            <p>No users found.</p>
+        <% } else { %>
+            <table border="1">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% users.forEach(user => { %>
+                        <tr>
+                            <td><%= user.name %></td>
+                            <td><%= user.email %></td>
+                            <td><%= user.role_name %></td>
+                            <td>
+                                <% if (user.role_id !== 3) { %> <!-- Prevent deleting admins -->
+                                    <form action="/deleteUser/<%= user.id %>" method="POST" onsubmit="return confirm('Are you sure you want to delete this user?');">
+                                        <button type="submit">Delete</button>
+                                    </form>
+                                <% } else { %>
+                                    <button disabled>Cannot Delete Admin</button>
+                                <% } %>
+                            </td>
+                        </tr>
+                    <% }); %>
+                </tbody>
+            </table>
+        <% } %>
+    <% } %>
+
+    <% renderUserTable("Admin Users", adminUsers); %>
+    <% renderUserTable("Teachers", teacherUsers); %>
+    <% renderUserTable("Students", studentUsers); %>
+
+    <a href="/dashboard">Back to Dashboard</a>
+</body>
+</html>
