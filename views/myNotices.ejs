@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Notices</title>
+    <link rel="stylesheet" href="/public/styles.css"> <!-- Include your CSS file -->
+</head>
+<body>
+    <header>
+        <h1>My Notices</h1>
+        <nav>
+            <ul>
+                <li><a href="/dashboard">Dashboard</a></li>
+                <li><a href="/logout">Log Out</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <h2>Notices Posted by You (<%= user.name %>)</h2>
+
+        <% if (notices.length === 0) { %>
+            <p>No notices posted yet.</p>
+        <% } else { %>
+            <table border="1">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Content</th>
+                        <th>Date & Time</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% notices.forEach(notice => { %>
+                        <tr>
+                            <td><%= notice.title %></td>
+                            <td><%= notice.content %></td>
+                            <td><%= new Date(notice.created_at).toLocaleString() %></td>
+                        </tr>
+                    <% }); %>
+                </tbody>
+            </table>
+        <% } %>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 College Notice Board</p>
+    </footer>
+</body>
+</html>

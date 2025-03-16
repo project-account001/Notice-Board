@@ -69,6 +69,79 @@ app.use(session({
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views")); // Ensure views directory is correctly set
 
+// Middleware to check if the user is logged in
+function isAuthenticated(req, res, next) {
+    if (!req.session.user) {
+        return res.redirect("/login");
+    }
+    next();
+}
+
+// Middleware to check if the user is a teacher
+function isTeacher(req, res, next) {
+    if (req.session.user.role !== "teacher") {
+        return res.status(403).send("Access denied");
+    }
+    next();
+}
+
+// Middleware to check if the user is an admin
+function isAdmin(req, res, next) {
+    if (!req.session.user || req.session.user.role !== "admin") {
+        return res.status(403).send("Access denied. Only admins can access this page.");
+    }
+    next();
+}
+
+app.get("/myNotices", isAuthenticated, isTeacher, async (req, res) => {
+    try {
+        const query = `
+            SELECT * FROM notices WHERE posted_by = $1 ORDER BY created_at DESC
+        `;
+        const result = await pool.query(query, [req.session.user.id]);
+        res.render("myNotices", { user: req.session.user, notices: result.rows });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send("Server error");
+    }
+});
+
+
+
+// Route to show all notices (Admin Only)
+app.get("/manageNotice", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+        const query = `
+            SELECT notices.id, notices.title, notices.content, users.name AS teacher_name, notices.created_at
+            FROM notices
+            JOIN users ON notices.posted_by = users.id
+            ORDER BY notices.created_at DESC
+        `;
+
+        const result = await pool.query(query);
+        res.render("manageNotice", { user: req.session.user, notices: result.rows });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send("Server error");
+    }
+});
+
+// Route to Delete Notice (Admin Only)
+app.post("/deleteNotice/:id", isAuthenticated, isAdmin, async (req, res) => {
+    const noticeId = req.params.id;
+    try {
+        const deleteQuery = `DELETE FROM notices WHERE id = $1`;
+        await pool.query(deleteQuery, [noticeId]);
+        res.redirect("/manageNotice");
+    } catch (error) {
+        console.error(error);
+        res.status(500).send("Server error");
+    }
+});
+
+app.get("/manageUsers", isAuthenticated, isAdmin, async(req, res) => {
+    res.render("manageuser.ejs");
+});
 
 app.get("/", (req, res) => {
     // res.send("🚀 Node.js server is running successfully!");
@@ -185,15 +258,15 @@ app.get("/dashboard", async (req, res) => {
 
 
 
-app.get("/notices", async (req, res) => {
-    try {
-        const result = await pool.query("SELECT * FROM notices ORDER BY created_at DESC");
-        res.json(result.rows);
-    } catch (err) {
-        console.error(err);
-        res.status(500).send("❌ Server Error");
-    }
-});
+// app.get("/notices", async (req, res) => {
+//     try {
+//         const result = await pool.query("SELECT * FROM notices ORDER BY created_at DESC");
+//         res.json(result.rows);
+//     } catch (err) {
+//         console.error(err);
+//         res.status(500).send("❌ Server Error");
+//     }
+// });
 
 // Logout Route
 app.get("/logout", (req, res) => {

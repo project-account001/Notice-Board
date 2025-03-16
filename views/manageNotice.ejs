@@ -1,8 +1,13 @@
-<%- include("partials/header") %>
-    <h2>Welcome, <%= user.name %>!</h2>
-    <h3>You have Logged In as: <%= user.role %></h3>
-
-    <h2>All Notices</h2>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Notices</title>
+    <link rel="stylesheet" href="/public/styles.css"> <!-- Include CSS -->
+</head>
+<body>
+    <h2>Manage Notices</h2>
 
     <% if (notices.length === 0) { %>
         <p>No notices available.</p>
@@ -14,6 +19,7 @@
                     <th>Content</th>
                     <th>Posted By</th>
                     <th>Date & Time</th>
+                    <th>Action</th>
                 </tr>
             </thead>
             <tbody>
@@ -23,12 +29,17 @@
                         <td><%= notice.content %></td>
                         <td><%= notice.teacher_name %></td>
                         <td><%= new Date(notice.created_at).toLocaleString() %></td>
+                        <td>
+                            <form action="/deleteNotice/<%= notice.id %>" method="POST" onsubmit="return confirm('Are you sure you want to delete this notice?');">
+                                <button type="submit">Delete</button>
+                            </form>
+                        </td>
                     </tr>
                 <% }); %>
             </tbody>
         </table>
     <% } %>
 
-    <a href="/logout">Logout</a>
-<%- include("partials/footer") %>
-
+    <a href="/dashboard">Back to Dashboard</a>
+</body>
+</html>
