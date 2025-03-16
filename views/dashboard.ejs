@@ -4,17 +4,38 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard</title>
-    <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
-    <%- include("./partials/header") %>
+    <h2>Welcome, <%= user.name %>!</h2>
+    <h3>You have Logged In as: <%= user.role %></h3>
 
-    <div class="dashboard-container">
-        <h2>Welcome, <%= user.name %>!</h2>
-        <p>You are logged in as <strong><%= user.role %></strong>.</p>
-        <a href="/logout">Logout</a>
-    </div>
+    <h2>All Notices</h2>
 
-    <%- include("./partials/footer") %>
+    <% if (notices.length === 0) { %>
+        <p>No notices available.</p>
+    <% } else { %>
+        <table border="1">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Content</th>
+                    <th>Posted By</th>
+                    <th>Date & Time</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% notices.forEach(notice => { %>
+                    <tr>
+                        <td><%= notice.title %></td>
+                        <td><%= notice.content %></td>
+                        <td><%= notice.teacher_name %></td>
+                        <td><%= new Date(notice.created_at).toLocaleString() %></td>
+                    </tr>
+                <% }); %>
+            </tbody>
+        </table>
+    <% } %>
+
+    <a href="/logout">Logout</a>
 </body>
 </html>

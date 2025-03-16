@@ -26,6 +26,30 @@ pool.query("SELECT NOW()", (err, res) => {
     }
 });
 
+//
+// async function updatePasswords() {
+//     try {
+//         const users = await pool.query("SELECT id, password FROM users");
+
+//         for (let user of users.rows) {
+//             const hashedPassword = await bcrypt.hash(user.password, 10);
+//             await pool.query("UPDATE users SET password = $1 WHERE id = $2", [hashedPassword, user.id]);
+//             console.log(`Updated password for user ID ${user.id}`);
+//         }
+
+//         console.log("✅ All passwords updated successfully!");
+//         process.exit();
+//     } catch (error) {
+//         console.error("Error updating passwords:", error);
+//         process.exit(1);
+//     }
+// }
+
+// updatePasswords();
+//
+
+const ADMIN_PASSKEY = "SuperSecretKey123";
+
 app.use(express.json());
 
 // Middleware
@@ -51,29 +75,69 @@ app.get("/", (req, res) => {
     res.render("homepage.ejs");
 });
 
+// GET Route - Render Signup Page
+app.get("/signup", (req, res) => {
+    res.render("signup", { error: null });
+});
+
+
+// POST Route - Handle Signup
+app.post("/signup", async (req, res) => {
+    const { name, email, password, passKey } = req.body;
+
+    try {
+        if (passKey !== ADMIN_PASSKEY) {
+            return res.render("signup", { error: "Invalid PassKey! Signup failed." });
+        }
+
+        // Check if email already exists
+        const checkQuery = "SELECT * FROM users WHERE email = $1";
+        const existingUser = await pool.query(checkQuery, [email]);
+
+        if (existingUser.rows.length > 0) {
+            return res.render("signup", { error: "Email already registered!" });
+        }
+
+        // Hash the password
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const createdAt = new Date();
+
+        // Insert new admin into the database
+        const insertQuery = "INSERT INTO users (name, email, password, role_id, created_at) VALUES ($1, $2, $3, $4, $5)";
+        await pool.query(insertQuery, [name, email, hashedPassword, 3, createdAt]); // Assuming role_id 3 is for admins
+
+        res.redirect("/login/admin"); // Redirect to login after successful signup
+    } catch (error) {
+        console.error(error);
+        res.status(500).send("Server error");
+    }
+});
+
 // login page
 app.get("/login/:role", (req, res) => {
     const role = req.params.role;
     res.render("login", { role });
 });
 
-// Handle Login submission 
-app.post("/login", async(req, res) => {
-    const {email, password, role } = req.body;
-
-    try{
-        // check user existence and role
+// Handle Login Submission
+app.post("/login", async (req, res) => {
+    const { email, password, role } = req.body;
+    console.log(email);
+    console.log(password);
+    console.log(role);
+    try {
+        // Check user existence and role
         const query = `
-        SELECT users.*, user_roles.role_name
-        FROM users
-        JOIN user_roles ON users.role_id = user_roles.id
-        WHERE email = $1 AND user_roles.role_name = $2
+            SELECT users.*, user_roles.role_name 
+            FROM users 
+            JOIN user_roles ON users.role_id = user_roles.id 
+            WHERE email = $1 AND user_roles.role_name = $2
         `;
 
         const result = await pool.query(query, [email, role]);
 
-        if(result.rows.length === 0) {
-            return res.render("login", {role, error: "Invalid email or role." });
+        if (result.rows.length === 0) {
+            return res.render("login", { role, error: "Invalid email or role." });
         }
 
         const user = result.rows[0];
@@ -87,19 +151,39 @@ app.post("/login", async(req, res) => {
         // Save session and redirect to dashboard
         req.session.user = { id: user.id, name: user.name, role: user.role_name };
         res.redirect("/dashboard");
-    }catch (err) {
+    } catch (err) {
         console.error(err);
         res.status(500).send("Server error");
     }
 });
 
 // Dashboard Route
-app.get("/dashboard", (req, res) => {
+app.get("/dashboard", async (req, res) => {
     if (!req.session.user) {
         return res.redirect("/");
     }
-    res.render("dashboard", { user: req.session.user });
+
+    try {
+        const query = `
+            SELECT notices.title, notices.content, users.name AS teacher_name, notices.created_at
+            FROM notices
+            JOIN users ON notices.posted_by = users.id
+            ORDER BY notices.created_at DESC
+        `;
+
+        const result = await pool.query(query);
+
+        res.render("dashboard", {
+            user: req.session.user,
+            notices: result.rows
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send("Server error");
+    }
 });
+
+
 
 app.get("/notices", async (req, res) => {
     try {
