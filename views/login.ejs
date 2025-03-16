@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= role %> Login</title>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+    <%- include("partials/header") %>
+
+    <div class="login-container">
+        <h2><%= role.charAt(0).toUpperCase() + role.slice(1) %> Login</h2>
+        
+        <% if (typeof error !== "undefined") { %>
+            <p class="error"><%= error %></p>
+        <% } %>
+
+        <form action="/login" method="POST">
+            <input type="hidden" name="role" value="<%= role %>">
+            <label for="email">Email:</label>
+            <input type="email" name="email" required>
+            
+            <label for="password">Password:</label>
+            <input type="password" name="password" required>
+            
+            <button type="submit">Login</button>
+        </form>
+    </div>
+
+    <%- include("partials/footer") %>
+</body>
+</html>

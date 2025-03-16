@@ -3,6 +3,8 @@ const express = require("express");
 const { Pool } = require("pg");
 const path = require("path");
 const bodyParser = require("body-parser");
+const session = require("express-session");
+const bcrypt = require("bcrypt");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -32,6 +34,13 @@ app.use(bodyParser.json());
 
 app.use(express.static(path.join(__dirname, "public"))); // Ensure correct path for static files
 
+// Session setup
+app.use(session({
+    secret: "your_secret_key",
+    resave: false,
+    saveUninitialized: false
+}));
+
 // View Engine Setup
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views")); // Ensure views directory is correctly set
@@ -42,6 +51,56 @@ app.get("/", (req, res) => {
     res.render("homepage.ejs");
 });
 
+// login page
+app.get("/login/:role", (req, res) => {
+    const role = req.params.role;
+    res.render("login", { role });
+});
+
+// Handle Login submission 
+app.post("/login", async(req, res) => {
+    const {email, password, role } = req.body;
+
+    try{
+        // check user existence and role
+        const query = `
+        SELECT users.*, user_roles.role_name
+        FROM users
+        JOIN user_roles ON users.role_id = user_roles.id
+        WHERE email = $1 AND user_roles.role_name = $2
+        `;
+
+        const result = await pool.query(query, [email, role]);
+
+        if(result.rows.length === 0) {
+            return res.render("login", {role, error: "Invalid email or role." });
+        }
+
+        const user = result.rows[0];
+
+        // Check Password
+        const match = await bcrypt.compare(password, user.password);
+        if (!match) {
+            return res.render("login", { role, error: "Incorrect password." });
+        }
+
+        // Save session and redirect to dashboard
+        req.session.user = { id: user.id, name: user.name, role: user.role_name };
+        res.redirect("/dashboard");
+    }catch (err) {
+        console.error(err);
+        res.status(500).send("Server error");
+    }
+});
+
+// Dashboard Route
+app.get("/dashboard", (req, res) => {
+    if (!req.session.user) {
+        return res.redirect("/");
+    }
+    res.render("dashboard", { user: req.session.user });
+});
+
 app.get("/notices", async (req, res) => {
     try {
         const result = await pool.query("SELECT * FROM notices ORDER BY created_at DESC");
@@ -50,6 +109,13 @@ app.get("/notices", async (req, res) => {
         console.error(err);
         res.status(500).send("❌ Server Error");
     }
+});
+
+// Logout Route
+app.get("/logout", (req, res) => {
+    req.session.destroy(() => {
+        res.redirect("/");
+    });
 });
 
 app.listen(PORT, () => {
