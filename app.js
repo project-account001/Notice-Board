@@ -79,8 +79,8 @@ function isAuthenticated(req, res, next) {
 
 // Middleware to check if the user is a teacher
 function isTeacher(req, res, next) {
-    if (req.session.user.role !== "teacher") {
-        return res.status(403).send("Access denied");
+    if (!req.session.user || req.session.user.role !== "teacher") {
+        return res.status(403).send("Access denied. Only teachers can access this page.");
     }
     next();
 }
@@ -106,6 +106,92 @@ app.get("/myNotices", isAuthenticated, isTeacher, async (req, res) => {
     }
 });
 
+
+
+// Route to display the form for adding a notice (Teacher Only)
+app.get("/addNotice", isAuthenticated, isTeacher, (req, res) => {
+    res.render("addNotice", { user: req.session.user });
+});
+
+// Route to handle adding a new notice (Teacher Only)
+app.post("/addNotice", isAuthenticated, isTeacher, async (req, res) => {
+    const { title, content } = req.body;
+    try {
+        const insertQuery = `
+            INSERT INTO notices (title, content, posted_by, created_at) 
+            VALUES ($1, $2, $3, NOW())
+        `;
+        await pool.query(insertQuery, [title, content, req.session.user.id]);
+        res.redirect("/myNotices");
+    } catch (error) {
+        console.error(error);
+        res.status(500).send("Server error");
+    }
+});
+
+// Route to display the edit form (Teacher Only)
+app.get("/editNotice/:id", isAuthenticated, isTeacher, async (req, res) => {
+    const noticeId = req.params.id;
+    try {
+        const query = `SELECT * FROM notices WHERE id = $1 AND posted_by = $2`;
+        const result = await pool.query(query, [noticeId, req.session.user.id]);
+
+        if (result.rows.length === 0) {
+            return res.status(403).send("Unauthorized access.");
+        }
+
+        res.render("editNotice", { user: req.session.user, notice: result.rows[0] });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send("Server error");
+    }
+});
+
+// Route to handle updating a notice (Teacher Only)
+app.post("/editNotice/:id", isAuthenticated, isTeacher, async (req, res) => {
+    const noticeId = req.params.id;
+    const { title, content } = req.body;
+    try {
+        const updateQuery = `
+            UPDATE notices SET title = $1, content = $2, created_at = NOW()
+            WHERE id = $3 AND posted_by = $4
+        `;
+        await pool.query(updateQuery, [title, content, noticeId, req.session.user.id]);
+        res.redirect("/myNotices");
+    } catch (error) {
+        console.error(error);
+        res.status(500).send("Server error");
+    }
+});
+
+// Route to handle deleting a notice (Admin and Teacher)
+app.post("/deleteNotice/:id", isAuthenticated, async (req, res) => {
+    const noticeId = req.params.id;
+
+    try {
+        // If the user is an admin, allow them to delete any notice
+        if (req.session.user.role === "admin") {
+            const deleteQuery = `DELETE FROM notices WHERE id = $1`;
+            await pool.query(deleteQuery, [noticeId]);
+            return res.redirect("/manageNotice");
+        }
+
+        // If the user is a teacher, they can only delete their own notices
+        if (req.session.user.role === "teacher") {
+            const deleteQuery = `DELETE FROM notices WHERE id = $1 AND posted_by = $2`;
+            await pool.query(deleteQuery, [noticeId, req.session.user.id]);
+            return res.redirect("/myNotices");
+        }
+
+        // If not an admin or teacher, deny access
+        res.status(403).send("Access denied. You do not have permission to delete this notice.");
+    } catch (error) {
+        console.error(error);
+        res.status(500).send("Server error");
+    }
+});
+
+//
 
 
 // Route to show all notices (Admin Only)
