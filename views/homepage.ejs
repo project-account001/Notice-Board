@@ -22,37 +22,44 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 2rem;
+      padding: 1rem;
     }
 
     .overlay {
       background-color: rgba(255, 255, 255, 0.92);
       backdrop-filter: blur(10px);
       border-radius: 20px;
-      padding: 2.5rem 3.5rem;
+      padding: 2rem;
       box-shadow: 0 10px 30px rgba(0,0,0,0.15);
       text-align: center;
+      max-width: 600px;
+      width: 100%;
     }
 
     .logo {
-      width: 160px;
-      margin-bottom: 0px;
+      width: 100px;
+      margin: 0 auto 1rem;
+      display: block;
     }
 
     .typewriter h1 {
+      display: inline-block;
       overflow: hidden;
       border-right: 0.15em solid #333;
       white-space: nowrap;
       margin: 0 auto;
-      letter-spacing: 2px;
-      animation: typing 3.5s steps(40, end), blink-caret 0.75s step-end infinite;
-      font-size: 1.9rem;
+      letter-spacing: 1px;
+      font-size: 1.6rem;
       font-weight: 700;
+      animation: typing 5s steps(36, end) infinite, blink-caret 0.75s step-end infinite;
+      max-width: 100%;
     }
 
     @keyframes typing {
-      from { width: 0 }
-      to { width: 100% }
+      0% { width: 0 }
+      45% { width: 100% }
+      55% { width: 100% }
+      100% { width: 0 }
     }
 
     @keyframes blink-caret {
@@ -61,11 +68,12 @@
     }
 
     .btn-lg {
-      font-size: 1.1rem;
-      padding: 0.75rem 1.2rem;
+      font-size: 1rem;
+      padding: 0.7rem 1rem;
       position: relative;
       overflow: hidden;
       transition: 0.4s ease;
+      min-width: 200px;
     }
 
     .btn-lg::before {
@@ -95,6 +103,21 @@
       padding: 1rem;
       font-size: 0.9rem;
     }
+
+    @media (max-width: 576px) {
+      .typewriter h1 {
+        font-size: 1.3rem;
+      }
+
+      .overlay {
+        padding: 1.5rem;
+      }
+
+      .btn-lg {
+        font-size: 0.95rem;
+        min-width: 100%;
+      }
+    }
   </style>
 </head>
 <body>
@@ -111,7 +134,7 @@
 
       <p class="lead mb-4">Select your role to continue:</p>
 
-      <div class="d-flex flex-wrap justify-content-center gap-3 mb-4">
+      <div class="d-flex flex-column flex-sm-row flex-wrap justify-content-center gap-3 mb-4">
         <a href="/login/admin" class="btn btn-primary btn-lg btn-glow">
           <i class="bi bi-person-gear me-2"></i>Login as Admin
         </a>
