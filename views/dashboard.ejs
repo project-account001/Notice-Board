@@ -89,7 +89,17 @@
               <div id="collapse<%= index %>" class="accordion-collapse collapse" aria-labelledby="heading<%= index %>" data-bs-parent="#noticesAccordion">
                 <div class="accordion-body notice-content">
                   <hr>
+                  <p><strong>File Path Debug:</strong> <%= notice.file_path %></p>
                   <p><%= notice.content %></p>
+                  <% if (notice.file_path) { %>
+                    <% if (notice.file_path.endsWith('.pdf')) { %>
+                      <iframe src="<%= notice.file_path %>" width="100%" height="400px"></iframe>
+                    <% } else { %>
+                      <img src="<%= notice.file_path %>" alt="Image" class="img-fluid" />
+                    <% } %>
+                  <% } %>
+                                   
+                  
                 </div>
               </div>
             </div>

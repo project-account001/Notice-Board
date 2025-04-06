@@ -85,19 +85,36 @@
             <h2 class="text-center mb-4"><i class="bi bi-pencil-square me-2"></i>Edit Your Notice</h2>
 
             <!-- Edit Notice Form -->
-            <form action="/editNotice/<%= notice.id %>" method="POST">
+            <form action="/editNotice/<%= notice.id %>" method="POST" enctype="multipart/form-data">
               <div class="mb-3">
                 <label for="title" class="form-label">Title:</label>
                 <input type="text" id="title" name="title" class="form-control" value="<%= notice.title %>" required>
               </div>
-
+            
               <div class="mb-3">
                 <label for="content" class="form-label">Content:</label>
                 <textarea id="content" name="content" rows="4" class="form-control" required><%= notice.content %></textarea>
               </div>
-
+            
+              <div class="mb-3">
+                <label for="file" class="form-label">Replace File (optional):</label>
+                <input type="file" id="file" name="file" class="form-control">
+                <% if (notice.file_path) { %>
+                  <p class="mt-2">Current File:
+                    <% if (notice.file_path.endsWith('.pdf')) { %>
+                      <a href="<%= notice.file_path %>" target="_blank">View PDF</a>
+                    <% } else { %>
+                      <img src="<%= notice.file_path %>" alt="Current Image" width="100" class="img-thumbnail">
+                    <% } %>
+                  </p>
+                  
+                <% } %>
+              </div>
+              
+            
               <button type="submit" class="btn btn-primary w-100">Update Notice</button>
             </form>
+            
           </div>
         </div>
       </div>

@@ -5,6 +5,9 @@ const path = require("path");
 const bodyParser = require("body-parser");
 const session = require("express-session");
 const bcrypt = require("bcrypt");
+const multer = require('multer');
+
+
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -50,11 +53,13 @@ pool.query("SELECT NOW()", (err, res) => {
 
 const ADMIN_PASSKEY = "SuperSecretKey123";
 
-app.use(express.json());
+// app.use(express.json());
 
 // Middleware
-app.use(bodyParser.urlencoded({ extended: true })); // false
-app.use(bodyParser.json());
+// app.use(bodyParser.urlencoded({ extended: true })); // false
+app.use(express.urlencoded({ extended: true }));
+// app.use(bodyParser.json());
+app.use(express.json());
 
 app.use(express.static(path.join(__dirname, "public"))); // Ensure correct path for static files
 
@@ -92,6 +97,46 @@ function isAdmin(req, res, next) {
     }
     next();
 }
+//
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, 'public/uploads/');
+    },
+    filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, uniqueSuffix + path.extname(file.originalname));
+    }
+});
+
+const upload = multer({ storage: storage });
+//
+
+// Route to display the form for adding a notice (Teacher Only)
+app.get("/addNotice", isAuthenticated, isTeacher, (req, res) => {
+    res.render("addNotice", { user: req.session.user });
+});
+
+// Route to handle adding a new notice (Teacher Only)
+app.post("/addNotice", isAuthenticated, isTeacher, upload.single("file"), async (req, res) => {
+    
+
+    const { title, content } = req.body;
+    const filePath = req.file ? `/uploads/${req.file.filename}` : null;
+    console.log("Title:", title);
+console.log("Content:", content);
+console.log("File:", req.file);
+    try {
+        const insertQuery = `
+            INSERT INTO notices (title, content, posted_by, created_at, file_path) 
+            VALUES ($1, $2, $3, NOW(), $4)
+        `;
+        await pool.query(insertQuery, [title, content, req.session.user.id, filePath]);
+        res.redirect("/myNotices");
+    } catch (error) {
+        console.error(error);
+        res.status(500).send("Server error");
+    }
+});
 
 app.get("/myNotices", isAuthenticated, isTeacher, async (req, res) => {
     try {
@@ -108,26 +153,7 @@ app.get("/myNotices", isAuthenticated, isTeacher, async (req, res) => {
 
 
 
-// Route to display the form for adding a notice (Teacher Only)
-app.get("/addNotice", isAuthenticated, isTeacher, (req, res) => {
-    res.render("addNotice", { user: req.session.user });
-});
 
-// Route to handle adding a new notice (Teacher Only)
-app.post("/addNotice", isAuthenticated, isTeacher, async (req, res) => {
-    const { title, content } = req.body;
-    try {
-        const insertQuery = `
-            INSERT INTO notices (title, content, posted_by, created_at) 
-            VALUES ($1, $2, $3, NOW())
-        `;
-        await pool.query(insertQuery, [title, content, req.session.user.id]);
-        res.redirect("/myNotices");
-    } catch (error) {
-        console.error(error);
-        res.status(500).send("Server error");
-    }
-});
 
 // Route to display the edit form (Teacher Only)
 app.get("/editNotice/:id", isAuthenticated, isTeacher, async (req, res) => {
@@ -148,21 +174,57 @@ app.get("/editNotice/:id", isAuthenticated, isTeacher, async (req, res) => {
 });
 
 // Route to handle updating a notice (Teacher Only)
-app.post("/editNotice/:id", isAuthenticated, isTeacher, async (req, res) => {
+// app.post("/editNotice/:id", isAuthenticated, isTeacher, async (req, res) => {
+//     const noticeId = req.params.id;
+//     const { title, content } = req.body;
+//     try {
+//         const updateQuery = `
+//             UPDATE notices SET title = $1, content = $2, created_at = NOW()
+//             WHERE id = $3 AND posted_by = $4
+//         `;
+//         await pool.query(updateQuery, [title, content, noticeId, req.session.user.id]);
+//         res.redirect("/myNotices");
+//     } catch (error) {
+//         console.error(error);
+//         res.status(500).send("Server error");
+//     }
+// });
+app.post("/editNotice/:id", isAuthenticated, isTeacher, upload.single("file"), async (req, res) => {
     const noticeId = req.params.id;
     const { title, content } = req.body;
+    const newFile = req.file;
+
     try {
-        const updateQuery = `
-            UPDATE notices SET title = $1, content = $2, created_at = NOW()
-            WHERE id = $3 AND posted_by = $4
-        `;
-        await pool.query(updateQuery, [title, content, noticeId, req.session.user.id]);
+        let updateQuery, params;
+
+        if (newFile) {
+            const filePath = "/uploads/" + newFile.filename;
+            updateQuery = `
+                UPDATE notices
+                SET title = $1, content = $2, file_path = $3, created_at = NOW()
+                WHERE id = $4 AND posted_by = $5
+            `;
+            params = [title, content, filePath, noticeId, req.session.user.id];
+        } else {
+            updateQuery = `
+                UPDATE notices
+                SET title = $1, content = $2, created_at = NOW()
+                WHERE id = $3 AND posted_by = $4
+            `;
+            params = [title, content, noticeId, req.session.user.id];
+        }
+
+        await pool.query(updateQuery, params);
         res.redirect("/myNotices");
     } catch (error) {
         console.error(error);
         res.status(500).send("Server error");
     }
 });
+
+
+
+
 
 // Route to handle deleting a notice (Admin and Teacher)
 app.post("/deleteNotice/:id", isAuthenticated, async (req, res) => {
@@ -406,13 +468,14 @@ app.get("/dashboard", async (req, res) => {
 
     try {
         const query = `
-            SELECT notices.title, notices.content, users.name AS teacher_name, notices.created_at
+            SELECT notices.title, notices.content, users.name AS teacher_name, notices.created_at, notices.file_path
             FROM notices
             JOIN users ON notices.posted_by = users.id
             ORDER BY notices.created_at DESC
         `;
 
         const result = await pool.query(query);
+        console.log(result.rows);
 
         res.render("dashboard", {
             user: req.session.user,
