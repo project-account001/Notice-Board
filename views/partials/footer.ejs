@@ -1,9 +1,44 @@
 </main>
-<footer class="bg-dark text-white text-center py-3 mt-auto">
-    <p class="mb-0">&copy; 2025 College Notice Board. All rights reserved.</p>
+
+<footer class="bg-dark text-white text-center py-4 mt-auto shadow-lg footer-animated">
+    <div class="container">
+        <p class="mb-1 fw-semibold fs-5">
+            &copy; 2025 <span class="text-info">College Notice Board</span>
+        </p>
+        <p class="mb-0 small text-secondary">
+            Designed with ❤️ to keep you informed. All rights reserved.
+        </p>
+    </div>
 </footer>
+
 <!-- Bootstrap JS (Includes Popper.js for toggling navbar) -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Custom Footer Animation -->
+<style>
+    .footer-animated {
+        animation: slideUpFadeIn 0.8s ease-out;
+    }
+
+    @keyframes slideUpFadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    footer p {
+        margin-bottom: 0;
+    }
+
+    footer span.text-info {
+        font-weight: bold;
+    }
+</style>
 
 </body>
 </html>
