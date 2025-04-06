@@ -59,7 +59,7 @@
   </style>
 </head>
 <body class="d-flex flex-column min-vh-100">
-
+    <%- include("partials/header") %>
   <div class="container mt-5">
     <h2 class="text-center mb-4">Manage Users</h2>
 
@@ -181,5 +181,6 @@
     searchBox.addEventListener("input", filterUsers);
     roleFilter.addEventListener("change", filterUsers);
   </script>
+  <%- include("partials/footer") %>
 </body>
 </html>
